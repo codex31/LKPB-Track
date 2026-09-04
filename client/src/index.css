@@ -2,37 +2,16 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-:root {
-  --background: #f5f7fb;
-  --foreground: #101b31;
-  --card: #ffffff;
-  --card-foreground: #101b31;
-  --popover: #ffffff;
-  --popover-foreground: #101b31;
-  --primary: #2c63d6;
-  --primary-foreground: #ffffff;
-  --secondary: #eef4ff;
-  --secondary-foreground: #2453b6;
-  --muted: #f1f3f7;
-  --muted-foreground: #718096;
-  --accent: #f5c84b;
-  --accent-foreground: #101b31;
-  --destructive: #c64f35;
-  --destructive-foreground: #ffffff;
-  --border: #e6ebf2;
-  --input: #e6ebf2;
-  --ring: #2c63d6;
-  --radius: 0.75rem;
-}
-
+:root { --background: #eef3fa; --foreground: #10203b; --card: rgba(255,255,255,.68); --card-foreground: #10203b; --popover: rgba(255,255,255,.9); --popover-foreground: #10203b; --primary: #2c63d6; --primary-foreground: #fff; --secondary: #eaf1ff; --secondary-foreground: #2453b6; --muted: #edf1f6; --muted-foreground: #718096; --accent: #f5c84b; --accent-foreground: #10203b; --destructive: #c64f35; --destructive-foreground: #fff; --border: rgba(203,214,231,.72); --input: rgba(203,214,231,.72); --ring: #2c63d6; --radius: .85rem; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; min-width: 320px; background: var(--background); color: var(--foreground); font-family: 'DM Sans', sans-serif; }
+body { margin: 0; min-width: 320px; background: radial-gradient(circle at 10% 0%, rgba(204,224,255,.85), transparent 32%), radial-gradient(circle at 90% 12%, rgba(241,222,168,.38), transparent 28%), linear-gradient(135deg, #f5f8fc 0%, #eaf0f8 100%); color: var(--foreground); font-family: 'DM Sans', sans-serif; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
-button:active { transform: scale(0.98); }
+button:active { transform: scale(.98); }
 .font-display { font-family: 'Space Grotesk', sans-serif; }
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-}
+.glass-panel { border: 1px solid rgba(255,255,255,.76); background: rgba(255,255,255,.56); box-shadow: 0 18px 55px rgba(38,65,109,.09), inset 0 1px 0 rgba(255,255,255,.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 1rem; }
+/* Existing dashboard card utility classes are intentionally softened into glass surfaces. */
+.bg-white { background-color: rgba(255,255,255,.62) !important; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.focus-ring:focus-visible, button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(44,99,214,.28); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
