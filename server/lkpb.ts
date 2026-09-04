@@ -7,7 +7,7 @@ export type PoolSummary = { year: string; pool: string; sourceKey: string; label
 export type PoolIssue = { pool: string; year: string; total: number; open: number; finish: number; avgSlaDays: number; overdue: number; topCategory: string };
 export type LkpbSource = { sourceKey: string; year: string; pool: string; label: string; spreadsheetId: string; sheetName: string };
 export type LkpbDashboard = {
-  records: LkpbRecord[]; weekly: Array<{ label: string; range: string; open: number; finish: number }>;
+  records: LkpbRecord[];
   summary: { total: number; open: number; finish: number; completionRate: number; avgSlaDays: number; overdue: number };
   categories: Array<{ name: string; count: number; percentage: number }>;
   slaBuckets: Array<{ name: string; count: number; percentage: number; tone: "good" | "watch" | "risk" }>;
@@ -79,9 +79,9 @@ function parseDailyPool(rows: string[][], sourceInfo: LkpbSource): PoolSummary |
   return { year: sourceInfo.year, pool: sourceInfo.pool, sourceKey: sourceInfo.sourceKey, label: sourceInfo.label, days: data.length, lkpb, open, target, real, achievement: target ? Math.round((real / target) * 1000) / 10 : 0 };
 }
 
-function parseDetail(rows: string[][], sourceInfo: LkpbSource): { records: LkpbRecord[]; weekly: LkpbDashboard["weekly"] } {
+function parseDetail(rows: string[][], sourceInfo: LkpbSource): { records: LkpbRecord[] } {
   const headerIndex = rows.findIndex((row) => clean(row[1]).toUpperCase().includes("NO DO"));
-  if (headerIndex < 0) return { records: [], weekly: [] };
+  if (headerIndex < 0) return { records: [] };
   const header = rows[headerIndex].map((cell) => clean(cell).toUpperCase());
   const statusCol = header.findIndex((cell) => cell === "STATUS");
   const statusIdx = statusCol >= 0 ? statusCol : 6;
@@ -97,7 +97,7 @@ function parseDetail(rows: string[][], sourceInfo: LkpbSource): { records: LkpbR
       noDo: clean(row[1]),
       customer: clean(row[2]),
       jalurAwal: clean(row[3]),
-      jalurAwalDate: jalurAwalDate ? jalurAwalDate.toISOString().slice(0, 10) : null,
+      jalurAwalDate: jalurAwalDate ? `${jalurAwalDate.getFullYear()}-${String(jalurAwalDate.getMonth() + 1).padStart(2, "0")}-${String(jalurAwalDate.getDate()).padStart(2, "0")}` : null,
       reinstall: clean(row[4]),
       sla: jalurAwalDate ? `${slaDays} Day` : clean(row[5]),
       slaDays,
@@ -110,17 +110,13 @@ function parseDetail(rows: string[][], sourceInfo: LkpbSource): { records: LkpbR
       month: jalurAwalDate ? monthKey(jalurAwalDate) : 0,
     };
   });
-  const weeklyHeader = rows.findIndex((row) => clean(row[0]).toUpperCase() === "STATUS" && clean(row[1]).toUpperCase() === "W1");
-  if (weeklyHeader < 0) return { records, weekly: [] };
-  const weeklyIndexes = [1, 2, 3, 4, 6]; const rangeRow = rows[weeklyHeader + 3] ?? [];
-  const weekly = ["W1", "W2", "W3", "W4", "W5"].map((label, index) => { const column = weeklyIndexes[index]; return { label, range: clean(rangeRow[column]) || "—", open: number(rows[weeklyHeader + 1]?.[column]), finish: number(rows[weeklyHeader + 2]?.[column]) }; });
-  return { records, weekly };
+  return { records };
 }
 
-export function parseLkpbCsv(csv: string, sourceInfo: LkpbSource) { const rows = parseCsv(csv); const poolSummary = parseDailyPool(rows, sourceInfo); if (poolSummary) return { records: [] as LkpbRecord[], weekly: [] as LkpbDashboard["weekly"], poolSummary }; const detail = parseDetail(rows, sourceInfo); if (!detail.records.length) throw new Error(`No Detail LKPB records found for ${sourceInfo.label}`); return { ...detail, poolSummary: null }; }
+export function parseLkpbCsv(csv: string, sourceInfo: LkpbSource) { const rows = parseCsv(csv); const poolSummary = parseDailyPool(rows, sourceInfo); if (poolSummary) return { records: [] as LkpbRecord[], poolSummary }; const detail = parseDetail(rows, sourceInfo); if (!detail.records.length) throw new Error(`No Detail LKPB records found for ${sourceInfo.label}`); return { ...detail, poolSummary: null }; }
 export function __parseLkpbCsvForTests(csv: string) { return parseLkpbCsv(csv, DEFAULT_LKPB_SOURCES[0]); }
 
-function buildDashboard(records: LkpbRecord[], weekly: LkpbDashboard["weekly"], poolSummaries: PoolSummary[], sources: Array<LkpbSource & { enabled: number }>, isFallback = false): LkpbDashboard {
+function buildDashboard(records: LkpbRecord[], poolSummaries: PoolSummary[], sources: Array<LkpbSource & { enabled: number }>, isFallback = false): LkpbDashboard {
   const total = records.length; const open = records.filter((item) => item.status === "OPEN").length; const finish = records.filter((item) => item.status === "FINISH").length; const categoryMap = new Map<string, number>(); records.forEach((item) => categoryMap.set(item.category, (categoryMap.get(item.category) ?? 0) + 1));
   const categories = Array.from(categoryMap.entries()).map(([name, count]) => ({ name, count, percentage: total ? Math.round((count / total) * 1000) / 10 : 0 })).sort((a, b) => b.count - a.count);
   const defs = [{ name: "< 15 hari", test: (v: number) => v < 15, tone: "good" as const }, { name: "15–29 hari", test: (v: number) => v >= 15 && v < 30, tone: "watch" as const }, { name: "≥ 30 hari", test: (v: number) => v >= 30, tone: "risk" as const }];
@@ -137,12 +133,12 @@ function buildDashboard(records: LkpbRecord[], weekly: LkpbDashboard["weekly"], 
     const topCategory = Array.from(catMap.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
     return { pool, year: items[0]?.year ?? "", total: t, open: o, finish: f, avgSlaDays, overdue, topCategory };
   }).sort((a, b) => b.open - a.open);
-  return { records, weekly, poolSummaries, poolIssues, months, sources, years, pools, summary: { total, open, finish, completionRate: total ? Math.round((finish / total) * 100) : 0, avgSlaDays: total ? Math.round((records.reduce((sum, item) => sum + item.slaDays, 0) / total) * 10) / 10 : 0, overdue: records.filter((item) => item.status === "OPEN" && item.slaDays >= 30).length }, categories, slaBuckets, sourceUrl: LKPB_SOURCE_URL, lastSyncedAt: new Date().toISOString(), isFallback };
+  return { records, poolSummaries, poolIssues, months, sources, years, pools, summary: { total, open, finish, completionRate: total ? Math.round((finish / total) * 100) : 0, avgSlaDays: total ? Math.round((records.reduce((sum, item) => sum + item.slaDays, 0) / total) * 10) / 10 : 0, overdue: records.filter((item) => item.status === "OPEN" && item.slaDays >= 30).length }, categories, slaBuckets, sourceUrl: LKPB_SOURCE_URL, lastSyncedAt: new Date().toISOString(), isFallback };
 }
 
 export async function getLkpbDashboard() {
   const { ensureLkpbSources } = await import("./db"); const configured = await ensureLkpbSources(); const sources = configured as Array<LkpbSource & { enabled: number }>; const enabledSources = sources.filter((item) => item.enabled === 1); const results = await Promise.allSettled(enabledSources.map(async (item) => { const url = `${CSV_BASE}/${item.spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(item.sheetName)}`; const response = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { Accept: "text/csv" } }); if (!response.ok) throw new Error(`${response.status}`); return { item, parsed: parseLkpbCsv(await response.text(), item) }; }));
-  const records: LkpbRecord[] = []; let weekly: LkpbDashboard["weekly"] = []; const poolSummaries: PoolSummary[] = []; results.forEach((result) => { if (result.status === "fulfilled") { records.push(...result.value.parsed.records); if (result.value.parsed.weekly.length) weekly = result.value.parsed.weekly; if (result.value.parsed.poolSummary) poolSummaries.push(result.value.parsed.poolSummary); } });
-  if (!records.length && !poolSummaries.length) { const fallback = DEFAULT_LKPB_SOURCES[0]; const fallbackRows = await fetch(`${CSV_BASE}/${fallback.spreadsheetId}/gviz/tq?tqx=out:csv&sheet=Detail%20LKPB`).then((response) => response.text()).catch(() => ""); try { const parsed = parseLkpbCsv(fallbackRows, fallback); return buildDashboard(parsed.records, parsed.weekly, [], sources, false); } catch { return buildDashboard([], [], [], sources, true); } }
-  return buildDashboard(records, weekly, poolSummaries, sources, false);
+  const records: LkpbRecord[] = []; const poolSummaries: PoolSummary[] = []; results.forEach((result) => { if (result.status === "fulfilled") { records.push(...result.value.parsed.records); if (result.value.parsed.poolSummary) poolSummaries.push(result.value.parsed.poolSummary); } });
+  if (!records.length && !poolSummaries.length) { const fallback = DEFAULT_LKPB_SOURCES[0]; const fallbackRows = await fetch(`${CSV_BASE}/${fallback.spreadsheetId}/gviz/tq?tqx=out:csv&sheet=Detail%20LKPB`).then((response) => response.text()).catch(() => ""); try { const parsed = parseLkpbCsv(fallbackRows, fallback); return buildDashboard(parsed.records, [], sources, false); } catch { return buildDashboard([], [], sources, true); } }
+  return buildDashboard(records, poolSummaries, sources, false);
 }
