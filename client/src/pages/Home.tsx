@@ -169,7 +169,7 @@ export default function Home() {
                   });
                 })()}
               </div>
-              <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#f7f9fc] px-3 py-2.5 text-xs text-slate-500"><Activity className="h-3.5 w-3.5 text-[#2c63d6]" /> Week number computed from TANGGAL JALUR AWAL (Aug 2 2026 = week 1) · SLA is computed server-side.</div>
+              <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#f7f9fc] px-3 py-2.5 text-xs text-slate-500"><Activity className="h-3.5 w-3.5 text-[#2c63d6]" /> Week per bulan: W1 1-3 · W2 4-10 · W3 11-17 · W4 18-24 · W5 25-31 · SLA computed server-side.</div>
             </div>
 
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(16,27,49,0.04)] md:p-6">

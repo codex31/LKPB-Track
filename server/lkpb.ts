@@ -58,9 +58,13 @@ function parseIdDate(value: string): Date | null {
   return new Date(year, month, day);
 }
 function monthKey(date: Date): number { return date.getFullYear() * 100 + (date.getMonth() + 1); }
-function weekFromDate(date: Date): number {
-  const diffMs = date.getTime() - new Date(2026, 7, 2).getTime();
-  return Math.max(1, Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1);
+function weekInMonth(date: Date): number {
+  const day = date.getDate();
+  if (day <= 3) return 1;
+  if (day <= 10) return 2;
+  if (day <= 17) return 3;
+  if (day <= 24) return 4;
+  return 5;
 }
 
 function parseDailyPool(rows: string[][], sourceInfo: LkpbSource): PoolSummary | null {
@@ -102,7 +106,7 @@ function parseDetail(rows: string[][], sourceInfo: LkpbSource): { records: LkpbR
       reason: clean(row[reasonIdx]),
       year: sourceInfo.year,
       pool: sourceInfo.pool,
-      week: jalurAwalDate ? weekFromDate(jalurAwalDate) : 0,
+      week: jalurAwalDate ? weekInMonth(jalurAwalDate) : 0,
       month: jalurAwalDate ? monthKey(jalurAwalDate) : 0,
     };
   });

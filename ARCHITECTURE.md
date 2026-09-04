@@ -76,7 +76,7 @@ Portability dijaga dengan beberapa keputusan berikut:
 - Health probe tersedia pada `GET /healthz`.
 
 ## Batasan yang diketahui
-Source spreadsheet memerlukan akses CSV yang sesuai. OAuth Manus adalah integrasi opsional dan perlu diganti atau dinonaktifkan bila aplikasi dipindahkan ke identity provider lain. Perhitungan SLA di server menggunakan `TANGGAL JALUR AWAL` kolom spreadsheet; jika tanggal tidak dapat di-parse, fallback ke nilai statis dari kolom `SLA BERJALAN` sheet. Penomoran minggu mengikuti anchor 2 Agustus 2026 (week 1).
+Source spreadsheet memerlukan akses CSV yang sesuai. OAuth Manus adalah integrasi opsional dan perlu diganti atau dinonaktifkan bila aplikasi dipindahkan ke identity provider lain. Perhitungan SLA di server menggunakan `TANGGAL JALUR AWAL` kolom spreadsheet; jika tanggal tidak dapat di-parse, fallback ke nilai statis dari kolom `SLA BERJALAN` sheet. Penomoran minggu mengikuti kalender per bulan: 1-3 W1, 4-10 W2, 11-17 W3, 18-24 W4, 25-31 W5.
 
 ## References
 
