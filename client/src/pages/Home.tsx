@@ -140,9 +140,24 @@ export default function Home() {
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(16,27,49,0.04)] md:p-6">
               <div className="flex items-start justify-between gap-4"><div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Weekly pulse</p><h2 className="mt-1 text-lg font-bold tracking-tight text-[#101b31]">Progress by week</h2></div><div className="flex items-center gap-4 text-[11px] font-medium text-slate-500"><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-[#f5c84b]" />Open</span><span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-[#2c63d6]" />Finish</span></div></div>
               <div className="mt-8 flex h-[220px] items-end justify-between gap-2 px-1 sm:gap-5">
-                {data.weekly.map((week) => { const max = Math.max(...data.weekly.flatMap((item) => [item.open, item.finish]), 1); return <div key={week.label} className="flex h-full flex-1 flex-col items-center justify-end gap-3"><div className="flex h-[170px] w-full max-w-[74px] items-end justify-center gap-1.5"><div className="w-[28%] rounded-t-md bg-[#f5c84b] transition-all" style={{ height: `${Math.max((week.open / max) * 100, week.open ? 8 : 2)}%` }} title={`${week.open} open`} /><div className="w-[28%] rounded-t-md bg-[#2c63d6] transition-all" style={{ height: `${Math.max((week.finish / max) * 100, week.finish ? 8 : 2)}%` }} title={`${week.finish} finish`} /></div><div className="text-center"><p className="text-xs font-bold text-slate-700">{week.label}</p><p className="mt-1 text-[10px] text-slate-400">{week.range}</p></div></div> })}
+                {(() => {
+                  const weekMap = new Map<number, { open: number; finish: number }>();
+                  data.records.forEach((r) => {
+                    const w = r.week ?? 1;
+                    const cur = weekMap.get(w) ?? { open: 0, finish: 0 };
+                    if (r.status === "OPEN") cur.open += 1;
+                    if (r.status === "FINISH") cur.finish += 1;
+                    weekMap.set(w, cur);
+                  });
+                  const weeks = Array.from(weekMap.keys()).sort((a, b) => a - b);
+                  const max = Math.max(...weeks.flatMap((w) => [weekMap.get(w)?.open ?? 0, weekMap.get(w)?.finish ?? 0]), 1);
+                  return weeks.map((w) => {
+                    const week = weekMap.get(w)!;
+                    return <div key={w} className="flex h-full flex-1 flex-col items-center justify-end gap-3"><div className="flex h-[170px] w-full max-w-[74px] items-end justify-center gap-1.5"><div className="w-[28%] rounded-t-md bg-[#f5c84b] transition-all" style={{ height: `${Math.max((week.open / max) * 100, week.open ? 8 : 2)}%` }} title={`${week.open} open`} /><div className="w-[28%] rounded-t-md bg-[#2c63d6] transition-all" style={{ height: `${Math.max((week.finish / max) * 100, week.finish ? 8 : 2)}%` }} title={`${week.finish} finish`} /></div><div className="text-center"><p className="text-xs font-bold text-slate-700">Week {w}</p><p className="mt-1 text-[10px] text-slate-400">{week.open + week.finish} cases</p></div></div>;
+                  });
+                })()}
               </div>
-              <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#f7f9fc] px-3 py-2.5 text-xs text-slate-500"><Activity className="h-3.5 w-3.5 text-[#2c63d6]" /> Weekly status is synced from the summary block in your source sheet.</div>
+              <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#f7f9fc] px-3 py-2.5 text-xs text-slate-500"><Activity className="h-3.5 w-3.5 text-[#2c63d6]" /> Week number computed from TANGGAL JALUR AWAL (Aug 2 2026 = week 1).</div>
             </div>
 
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(16,27,49,0.04)] md:p-6">
