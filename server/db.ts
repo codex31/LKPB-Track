@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertLkpbSourceSetting, InsertUser, lkpbSourceSettings, users } from "../drizzle/schema";
+import { InsertLkpbSourceSetting, InsertUser, adminSettings, lkpbSourceSettings, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { DEFAULT_LKPB_SOURCES } from './lkpb';
 
@@ -57,4 +57,20 @@ export async function setLkpbSourceEnabled(sourceKey: string, enabled: boolean) 
   await db.update(lkpbSourceSettings).set({ enabled: enabled ? 1 : 0, updatedAt: new Date() }).where(eq(lkpbSourceSettings.sourceKey, sourceKey));
   const rows = await db.select().from(lkpbSourceSettings).where(eq(lkpbSourceSettings.sourceKey, sourceKey)).limit(1);
   return rows[0];
+}
+
+const ADMIN_PW_KEY = "admin_password_hash";
+
+export async function getAdminPasswordHash(): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(adminSettings).where(eq(adminSettings.settingKey, ADMIN_PW_KEY)).limit(1);
+  return rows[0]?.settingValue ?? null;
+}
+
+export async function setAdminPasswordHash(hash: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const values = { settingKey: ADMIN_PW_KEY, settingValue: hash };
+  await db.insert(adminSettings).values(values).onDuplicateKeyUpdate({ set: { settingValue: hash, updatedAt: new Date() } });
 }

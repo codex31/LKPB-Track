@@ -4,8 +4,8 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { clearAdminCookie, clearLoginFailures, getLoginClientKey, isAdminConfigured, isAdminSession, isLoginRateLimited, isSameOrigin, recordLoginFailure, setAdminCookie, ADMIN_PASSWORD, ADMIN_USERNAME } from "./adminAuth";
-import { ensureLkpbSources, setLkpbSourceEnabled } from "./db";
+import { clearAdminCookie, clearLoginFailures, getLoginClientKey, hashPassword, isAdminConfigured, isAdminPasswordValid, isAdminSession, isLoginRateLimited, isSameOrigin, recordLoginFailure, setAdminCookie, verifyPassword } from "./adminAuth";
+import { ensureLkpbSources, getAdminPasswordHash, setAdminPasswordHash, setLkpbSourceEnabled } from "./db";
 import { getLkpbDashboard } from "./lkpb";
 
 const adminProcedure = publicProcedure.use(({ ctx, next }) => {
@@ -26,25 +26,33 @@ export const appRouter = router({
   lkpb: router({
     dashboard: publicProcedure.query(() => getLkpbDashboard()),
     admin: router({
-      login: publicProcedure.input(z.object({ username: z.string().min(1), password: z.string().min(1) })).mutation(({ input, ctx }) => {
+      login: publicProcedure.input(z.object({ username: z.string().min(1), password: z.string().min(1) })).mutation(async ({ input, ctx }) => {
         if (!isSameOrigin(ctx.req)) throw new TRPCError({ code: "FORBIDDEN", message: "Origin tidak diizinkan" });
         const clientKey = getLoginClientKey(ctx.req);
         if (isLoginRateLimited(clientKey)) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Terlalu banyak percobaan login. Coba lagi dalam 15 menit" });
         if (!isAdminConfigured()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Admin credentials belum dikonfigurasi di server" });
-        if (input.username !== ADMIN_USERNAME || input.password !== ADMIN_PASSWORD) {
+        if (input.username !== "admin" || !(await isAdminPasswordValid(input.password))) {
           recordLoginFailure(clientKey);
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Username atau password salah" });
         }
         clearLoginFailures(clientKey);
         setAdminCookie(ctx.res);
-        return { success: true, username: ADMIN_USERNAME } as const;
+        return { success: true, username: "admin" } as const;
       }),
-      me: publicProcedure.query(({ ctx }) => ({ authenticated: isAdminSession(ctx.req), username: isAdminSession(ctx.req) ? ADMIN_USERNAME : null })),
+      me: publicProcedure.query(({ ctx }) => ({ authenticated: isAdminSession(ctx.req), username: isAdminSession(ctx.req) ? "admin" : null })),
       logout: publicProcedure.mutation(({ ctx }) => { clearAdminCookie(ctx.res); return { success: true } as const; }),
       sources: adminProcedure.query(() => ensureLkpbSources()),
       toggleSource: adminProcedure.input(z.object({ sourceKey: z.string().min(1), enabled: z.boolean() })).mutation(({ input, ctx }) => {
         if (!isSameOrigin(ctx.req)) throw new TRPCError({ code: "FORBIDDEN", message: "Origin tidak diizinkan" });
         return setLkpbSourceEnabled(input.sourceKey, input.enabled);
+      }),
+      changePassword: adminProcedure.input(z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(4) })).mutation(async ({ input, ctx }) => {
+        if (!isSameOrigin(ctx.req)) throw new TRPCError({ code: "FORBIDDEN", message: "Origin tidak diizinkan" });
+        const dbHash = await getAdminPasswordHash();
+        const currentOk = dbHash ? verifyPassword(input.currentPassword, dbHash) : input.currentPassword === "admin";
+        if (!currentOk) throw new TRPCError({ code: "UNAUTHORIZED", message: "Password lama salah" });
+        await setAdminPasswordHash(hashPassword(input.newPassword));
+        return { success: true } as const;
       }),
     }),
   }),
