@@ -16,6 +16,9 @@ RUN corepack enable && corepack prepare pnpm@10.4.1 --activate
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY --from=build /app/dist ./dist
+# drizzle-kit migrate (compose entrypoint) needs the config + migration SQL
+COPY --from=build /app/drizzle.config.ts ./
+COPY --from=build /app/drizzle ./drizzle
 
 EXPOSE 3000
 USER node

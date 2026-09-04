@@ -25,7 +25,17 @@ export const lkpbSourceSettings = mysqlTable("lkpb_source_settings", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const adminSettings = mysqlTable("admin_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  settingKey: varchar("settingKey", { length: 64 }).notNull().unique(),
+  settingValue: text("settingValue"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type LkpbSourceSetting = typeof lkpbSourceSettings.$inferSelect;
 export type InsertLkpbSourceSetting = typeof lkpbSourceSettings.$inferInsert;
+export type AdminSetting = typeof adminSettings.$inferSelect;
+export type InsertAdminSetting = typeof adminSettings.$inferInsert;

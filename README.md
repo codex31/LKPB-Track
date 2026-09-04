@@ -9,7 +9,7 @@ LKPB TRACK adalah dashboard operasional untuk memantau **Laporan Kerusakan & Pen
 | Dashboard | KPI total case, status, SLA watchlist, kategori, weekly pulse, pool performance, pencarian, filter tahun/pool |
 | Data | Fetch CSV server-side dari Google Sheets, parser multi-format untuk Detail LKPB dan pool daily metrics |
 | Admin | Login berbasis server secret, registry source, enable/disable sheet, status database dan sinkronisasi |
-| Security | Signed HTTP-only admin cookie, same-origin mutation check, login rate limit, explicit proxy trust |
+| Security | Signed HTTP-only admin cookie, same-origin mutation check, scrypt-hashed password, explicit proxy trust |
 | Deployment | Node.js production build, Dockerfile, Docker Compose dengan MySQL dan migration startup |
 
 ## Prasyarat
@@ -87,7 +87,7 @@ Endpoint `GET /healthz` harus mengembalikan `ok`. Dashboard dapat dibuka pada `/
 
 ## Catatan keamanan
 
-Kredensial admin tidak memiliki fallback. Aplikasi menolak login bila `ADMIN_USERNAME`, `ADMIN_PASSWORD`, atau `JWT_SECRET` belum dikonfigurasi. Jangan menaruh credential pada source code, browser bundle, issue, log, atau repository. Rate limiter login saat ini bersifat in-memory per proses; untuk multi-instance deployment, gunakan reverse-proxy rate limit atau store terdistribusi.
+Kredensial admin tidak memiliki fallback. Aplikasi menolak login bila `ADMIN_USERNAME`, `ADMIN_PASSWORD`, atau `JWT_SECRET` belum dikonfigurasi. Jangan menaruh credential pada source code, browser bundle, issue, log, atau repository. Password admin disimpan sebagai hash scrypt di tabel `admin_settings` dan dapat diganti dari Control Room; nilai environment hanya dipakai sebagai seed awal.
 
 ## Lisensi
 

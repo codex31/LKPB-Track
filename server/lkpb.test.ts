@@ -2,10 +2,6 @@ import { describe, expect, it } from "vitest";
 import { __parseLkpbCsvForTests, DEFAULT_LKPB_SOURCES, parseLkpbCsv } from "./lkpb";
 
 const detailFixture = [
-  "STATUS,W1,W2,W3,W4,,W5",
-  "OPEN,0,0,0,1,,0",
-  "FINISH,1,0,0,1,,0",
-  ",1-6,7-13,14-20,21-27,,28-31",
   "SUMMARY DETAIL LKPB",
   "NO,NO DO,NAMA CUSTOMER,TANGGAL JALUR AWAL,TANGGAL REINSTALL,SLA BERJALAN,STATUS,KATEGORI LKPB,REASON",
   '1,5A.XH.000016,MITRA PROPERTI,6 Agu 2026,5 Sep 2026,29 Day,FINISH,CACAT,"KULIT PADA BAGIAN SANDARAN SOFA SOBEK"',
@@ -20,11 +16,13 @@ const poolFixture = [
 ].join("\n");
 
 describe("LKPB sheet parser", () => {
-  it("extracts case records and weekly status from the Detail LKPB layout", () => {
+  it("extracts case records with server-computed week, month, and SLA from the Detail LKPB layout", () => {
     const parsed = __parseLkpbCsvForTests(detailFixture);
     expect(parsed.records).toHaveLength(3);
-    expect(parsed.records[2]).toMatchObject({ noDo: "5A.XG.000053", customer: "GESIA 1", slaDays: 53, status: "OPEN", category: "CACAT VENDOR", year: "2026", pool: "MASTER" });
-    expect(parsed.weekly[0]).toEqual({ label: "W1", range: "1-6", open: 0, finish: 1 });
+    expect(parsed.records[2]).toMatchObject({ noDo: "5A.XG.000053", customer: "GESIA 1", slaDays: 53, status: "OPEN", category: "CACAT VENDOR", year: "2026", pool: "Pool Singkawang", month: 202607 });
+    expect(parsed.records[0]).toMatchObject({ noDo: "5A.XH.000016", week: 2, month: 202608 });
+    expect(parsed.records[1]).toMatchObject({ noDo: "D7.XF.000605", week: 4, month: 202608 });
+    expect(parsed.records[0].jalurAwalDate).toBe("2026-08-06");
   });
 
   it("extracts daily pool metrics from 2025 pool spreadsheets", () => {
@@ -33,12 +31,18 @@ describe("LKPB sheet parser", () => {
     expect(parsed.poolSummary).toMatchObject({ year: "2025", pool: "Pool Balikpapan", days: 2, lkpb: 2, target: 46, real: 46, achievement: 100 });
   });
 
-  it("does not fabricate weekly metrics when the weekly block is absent", () => {
-    const csv = [
+  it("returns only Detail LKPB records and ignores any weekly block in the sheet", () => {
+    const csvWithWeekly = [
+      "STATUS,W1,W2,W3,W4,,W5",
+      "OPEN,0,0,0,1,,0",
+      "FINISH,1,0,0,1,,0",
+      ",1-6,7-13,14-20,21-27,,28-31",
       "SUMMARY DETAIL LKPB",
       "NO,NO DO,NAMA CUSTOMER,TANGGAL JALUR AWAL,TANGGAL REINSTALL,SLA BERJALAN,STATUS,KATEGORI LKPB,REASON",
       "1,DO-1,CUSTOMER,1 Sep 2026,2 Sep 2026,1 Day,OPEN,CACAT,REASON",
     ].join("\n");
-    expect(__parseLkpbCsvForTests(csv).weekly).toEqual([]);
+    const parsed = __parseLkpbCsvForTests(csvWithWeekly);
+    expect(parsed.records).toHaveLength(1);
+    expect(parsed.records[0]).toMatchObject({ noDo: "DO-1", week: 1, month: 202609 });
   });
 });

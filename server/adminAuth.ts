@@ -1,14 +1,12 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { Request, Response } from "express";
 import { ENV } from "./_core/env";
+import { getAdminPasswordHash } from "./db";
 
 export const ADMIN_USERNAME = ENV.adminUsername;
 export const ADMIN_PASSWORD = ENV.adminPassword;
 export const ADMIN_COOKIE = "lkpb_admin_session";
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
-const LOGIN_WINDOW_MS = 15 * 60 * 1000;
-const LOGIN_MAX_ATTEMPTS = 5;
-const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 
 function secret() {
   if (!ENV.cookieSecret) throw new Error("JWT_SECRET must be configured for admin sessions");
@@ -21,6 +19,27 @@ function sign(payload: string) {
 
 export function isAdminConfigured() {
   return Boolean(ADMIN_USERNAME && ADMIN_PASSWORD && ENV.cookieSecret);
+}
+
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `scrypt:${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, stored: string): boolean {
+  const [scheme, salt, hash] = stored.split(":");
+  if (scheme !== "scrypt" || !salt || !hash) return false;
+  try {
+    const candidate = scryptSync(password, salt, 64).toString("hex");
+    return candidate.length === hash.length && timingSafeEqual(Buffer.from(candidate), Buffer.from(hash));
+  } catch { return false; }
+}
+
+export async function isAdminPasswordValid(inputPassword: string): Promise<boolean> {
+  const dbHash = await getAdminPasswordHash();
+  if (dbHash) return verifyPassword(inputPassword, dbHash);
+  return ADMIN_PASSWORD.length > 0 && inputPassword === ADMIN_PASSWORD;
 }
 
 export function createAdminToken(now = Date.now()) {
@@ -48,32 +67,6 @@ export function isSameOrigin(req: Request) {
   const host = req.get("host");
   if (!origin || !host) return false;
   try { return new URL(origin).host === host; } catch { return false; }
-}
-
-export function getLoginClientKey(req: Request) {
-  return req.ip || req.socket.remoteAddress || "unknown";
-}
-
-export function isLoginRateLimited(key: string, now = Date.now()) {
-  const current = loginAttempts.get(key);
-  if (!current || current.resetAt <= now) {
-    if (current) loginAttempts.delete(key);
-    return false;
-  }
-  return current.count >= LOGIN_MAX_ATTEMPTS;
-}
-
-export function recordLoginFailure(key: string, now = Date.now()) {
-  const current = loginAttempts.get(key);
-  if (!current || current.resetAt <= now) {
-    loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
-    return;
-  }
-  current.count += 1;
-}
-
-export function clearLoginFailures(key: string) {
-  loginAttempts.delete(key);
 }
 
 export function setAdminCookie(res: Response) {
