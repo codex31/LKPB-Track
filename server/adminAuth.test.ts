@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADMIN_COOKIE, createAdminToken, isAdminSession } from "./adminAuth";
+import { ADMIN_COOKIE, clearLoginFailures, createAdminToken, isAdminSession, isLoginRateLimited, isSameOrigin, recordLoginFailure } from "./adminAuth";
 
 function requestWithToken(token: string) {
   return { headers: { cookie: `${ADMIN_COOKIE}=${token}` } } as never;
@@ -14,5 +14,23 @@ describe("admin session", () => {
     expect(isAdminSession(requestWithToken(createAdminToken(Date.now() - 9 * 60 * 60 * 1000)))).toBe(false);
     const token = createAdminToken();
     expect(isAdminSession(requestWithToken(`${token.slice(0, -1)}x`))).toBe(false);
+  });
+
+  it("requires a same-origin browser request", () => {
+    const request = (origin?: string) => ({
+      headers: { host: "lkpb.example.com", origin },
+      get(name: string) { return name === "host" ? "lkpb.example.com" : origin; },
+    }) as never;
+    expect(isSameOrigin(request("https://lkpb.example.com"))).toBe(true);
+    expect(isSameOrigin(request("https://attacker.example"))).toBe(false);
+    expect(isSameOrigin(request())).toBe(false);
+  });
+
+  it("rate limits repeated failed login attempts", () => {
+    const key = `test-${Date.now()}-${Math.random()}`;
+    for (let i = 0; i < 5; i += 1) recordLoginFailure(key, 1_000);
+    expect(isLoginRateLimited(key, 1_001)).toBe(true);
+    clearLoginFailures(key);
+    expect(isLoginRateLimited(key, 1_001)).toBe(false);
   });
 });

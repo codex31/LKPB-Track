@@ -30,6 +30,9 @@ export default function Home() {
   const { data, isLoading, isFetching, error, refetch } = trpc.lkpb.dashboard.useQuery(undefined, {
     staleTime: 60_000,
   });
+  const now = new Date();
+  const todayLabel = new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }).format(now);
+  const greeting = now.getHours() < 11 ? "Good morning" : now.getHours() < 15 ? "Good afternoon" : "Good evening";
   const [status, setStatus] = useState<StatusFilter>("ALL");
   const [category, setCategory] = useState("ALL");
   const [year, setYear] = useState("ALL");
@@ -114,7 +117,7 @@ export default function Home() {
         <header className="sticky top-0 z-20 flex h-[82px] items-center justify-between border-b border-slate-200/80 bg-[#f5f7fb]/90 px-5 backdrop-blur md:px-8">
           <div className="flex items-center gap-3">
             <button onClick={() => setMobileNav(true)} className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-600 lg:hidden" aria-label="Buka navigasi"><Menu className="h-4 w-4" /></button>
-            <div><p className="text-xs font-medium text-slate-500">Thursday, 04 September 2026</p><h1 className="mt-1 text-xl font-bold tracking-tight text-[#101b31] md:text-2xl">Good morning, Operations team</h1></div>
+            <div><p className="text-xs font-medium capitalize text-slate-500">{todayLabel}</p><h1 className="mt-1 text-xl font-bold tracking-tight text-[#101b31] md:text-2xl">{greeting}, Operations team</h1></div>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden items-center gap-2 text-xs font-medium text-slate-500 sm:flex"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> Live data</span>
