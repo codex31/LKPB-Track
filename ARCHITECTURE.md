@@ -29,7 +29,7 @@ flowchart LR
 | `server/routers.ts` | API contract dan authorization boundary | Mutation admin wajib session + same-origin |
 | `server/lkpb.ts` | Fetch CSV, parsing, normalisasi, agregasi | Parser harus fail closed terhadap summary/header yang tidak valid |
 | `server/db.ts` | Query dan mutation database | Return data mentah; jangan taruh credential di DB source code |
-| `server/adminAuth.ts` | Signed admin cookie, origin guard, login rate limit | Semua secret berasal dari server environment |
+| `server/adminAuth.ts` | Signed admin cookie, origin guard, scrypt password verification | Semua secret berasal dari server environment |
 | `drizzle/schema.ts` | Source of truth schema database | Migration wajib direview dan disimpan |
 | `client/src/components/ui/` | Hanya komponen UI yang dipakai runtime | Jangan menambah template component tanpa import nyata |
 
@@ -47,7 +47,7 @@ Kegagalan satu source tidak boleh merusak seluruh dashboard. Aggregator mencatat
 
 ## Alur admin
 
-Admin mengirim login dari same-origin browser request. Server memeriksa origin, konfigurasi credential, rate limit per IP, lalu membandingkan credential dari environment. Jika valid, server menerbitkan cookie `lkpb_admin_session` yang `HttpOnly`, `SameSite=Lax`, dan `Secure` saat request dianggap HTTPS.
+Admin mengirim login dari same-origin browser request. Server memeriksa origin, lalu membandingkan credential dengan hash scrypt yang tersimpan di tabel `admin_settings` (di-seed dari environment `ADMIN_USERNAME` / `ADMIN_PASSWORD` saat startup pertama). Jika valid, server menerbitkan cookie `lkpb_admin_session` yang `HttpOnly`, `SameSite=Lax`, dan `Secure` saat request dianggap HTTPS. Admin dapat mengganti password sendiri dari Control Room; hash baru disimpan di database dan meng-override nilai environment.
 
 Mutation `toggleSource` memerlukan signed admin cookie serta origin yang sama dengan host request. Cookie tidak pernah dibaca atau dibuat oleh client JavaScript. Session memiliki TTL terbatas dan signature menggunakan HMAC-SHA256 berbasis `JWT_SECRET`.
 
@@ -76,8 +76,7 @@ Portability dijaga dengan beberapa keputusan berikut:
 - Health probe tersedia pada `GET /healthz`.
 
 ## Batasan yang diketahui
-
-Rate limiter login menggunakan memory process. Ini cukup untuk satu instance VPS. Pada multi-instance, tambahkan rate limiting di Nginx/Caddy atau gunakan store terdistribusi. Source spreadsheet memerlukan akses CSV yang sesuai. OAuth Manus adalah integrasi opsional dan perlu diganti atau dinonaktifkan bila aplikasi dipindahkan ke identity provider lain.
+Source spreadsheet memerlukan akses CSV yang sesuai. OAuth Manus adalah integrasi opsional dan perlu diganti atau dinonaktifkan bila aplikasi dipindahkan ke identity provider lain. Perhitungan SLA di server menggunakan `TANGGAL JALUR AWAL` kolom spreadsheet; jika tanggal tidak dapat di-parse, fallback ke nilai statis dari kolom `SLA BERJALAN` sheet. Penomoran minggu mengikuti anchor 2 Agustus 2026 (week 1).
 
 ## References
 

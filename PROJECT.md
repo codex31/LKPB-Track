@@ -23,7 +23,7 @@ Admin mutation harus tetap memiliki dua lapisan: session signed yang valid dan s
 | `server/_core/index.ts` | Express entrypoint dan server lifecycle |
 | `server/_core/env.ts` | Environment parsing dan validation |
 | `server/routers.ts` | tRPC contract, auth boundary, admin mutations |
-| `server/adminAuth.ts` | Signed admin session, origin check, rate limit |
+| `server/adminAuth.ts` | Signed admin session, origin check, scrypt password verification |
 | `server/lkpb.ts` | Source registry integration, CSV parser, aggregator |
 | `server/db.ts` | Database operations |
 | `drizzle/schema.ts` | Database schema |
