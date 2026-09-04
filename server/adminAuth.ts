@@ -7,9 +7,6 @@ export const ADMIN_USERNAME = ENV.adminUsername;
 export const ADMIN_PASSWORD = ENV.adminPassword;
 export const ADMIN_COOKIE = "lkpb_admin_session";
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
-const LOGIN_WINDOW_MS = 15 * 60 * 1000;
-const LOGIN_MAX_ATTEMPTS = 5;
-const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 
 function secret() {
   if (!ENV.cookieSecret) throw new Error("JWT_SECRET must be configured for admin sessions");
@@ -70,32 +67,6 @@ export function isSameOrigin(req: Request) {
   const host = req.get("host");
   if (!origin || !host) return false;
   try { return new URL(origin).host === host; } catch { return false; }
-}
-
-export function getLoginClientKey(req: Request) {
-  return req.ip || req.socket.remoteAddress || "unknown";
-}
-
-export function isLoginRateLimited(key: string, now = Date.now()) {
-  const current = loginAttempts.get(key);
-  if (!current || current.resetAt <= now) {
-    if (current) loginAttempts.delete(key);
-    return false;
-  }
-  return current.count >= LOGIN_MAX_ATTEMPTS;
-}
-
-export function recordLoginFailure(key: string, now = Date.now()) {
-  const current = loginAttempts.get(key);
-  if (!current || current.resetAt <= now) {
-    loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
-    return;
-  }
-  current.count += 1;
-}
-
-export function clearLoginFailures(key: string) {
-  loginAttempts.delete(key);
 }
 
 export function setAdminCookie(res: Response) {

@@ -4,7 +4,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { clearAdminCookie, clearLoginFailures, getLoginClientKey, hashPassword, isAdminConfigured, isAdminPasswordValid, isAdminSession, isLoginRateLimited, isSameOrigin, recordLoginFailure, setAdminCookie, verifyPassword } from "./adminAuth";
+import { clearAdminCookie, hashPassword, isAdminConfigured, isAdminPasswordValid, isAdminSession, isSameOrigin, setAdminCookie, verifyPassword } from "./adminAuth";
 import { ensureLkpbSources, getAdminPasswordHash, setAdminPasswordHash, setLkpbSourceEnabled } from "./db";
 import { getLkpbDashboard } from "./lkpb";
 
@@ -28,14 +28,10 @@ export const appRouter = router({
     admin: router({
       login: publicProcedure.input(z.object({ username: z.string().min(1), password: z.string().min(1) })).mutation(async ({ input, ctx }) => {
         if (!isSameOrigin(ctx.req)) throw new TRPCError({ code: "FORBIDDEN", message: "Origin tidak diizinkan" });
-        const clientKey = getLoginClientKey(ctx.req);
-        if (isLoginRateLimited(clientKey)) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Terlalu banyak percobaan login. Coba lagi dalam 15 menit" });
         if (!isAdminConfigured()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Admin credentials belum dikonfigurasi di server" });
         if (input.username !== "admin" || !(await isAdminPasswordValid(input.password))) {
-          recordLoginFailure(clientKey);
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Username atau password salah" });
         }
-        clearLoginFailures(clientKey);
         setAdminCookie(ctx.res);
         return { success: true, username: "admin" } as const;
       }),
