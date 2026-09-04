@@ -16,7 +16,7 @@ export type LkpbDashboard = {
 
 const source = (sourceKey: string, year: string, pool: string, label: string, spreadsheetId: string): LkpbSource => ({ sourceKey, year, pool, label, spreadsheetId, sheetName: "Detail LKPB" });
 export const DEFAULT_LKPB_SOURCES: LkpbSource[] = [
-  source("2026-master", "2026", "MASTER", "2026 · Detail LKPB master sample", ORIGINAL_SAMPLE_ID),
+  source("2026-master", "2026", "Pool Singkawang", "Sep 2026 · Pool Singkawang", ORIGINAL_SAMPLE_ID),
   source("2025-balikpapan", "2025", "Pool Balikpapan", "Feb 2025 · Pool Balikpapan", "1pGeL6g2oOMsU3SsdvCZGGuBiCYI-97FCKr33T4vJBss"),
   source("2025-banjarmasin", "2025", "Pool Banjarmasin", "Feb 2025 · Pool Banjarmasin", "1KnX9O-nFDX8E-CHCDEBvrFL9KZ_tgQ4sFFwLUevar8U"),
   source("2025-banten", "2025", "Pool Banten", "Feb 2025 · Pool Banten", "1mvqfuSKi5qkfIlCCCXh4GN0m9QRPAdBpjVo50gPJ30M"),
@@ -26,6 +26,17 @@ export const DEFAULT_LKPB_SOURCES: LkpbSource[] = [
   source("2025-samarinda", "2025", "Pool Samarinda", "Feb 2025 · Pool Samarinda", "1A8DTu_vH6cbXKRHW596uRpEpwJpyR8JpmGDhQqS6nbc"),
   source("2025-singkawang", "2025", "Pool Singkawang", "Feb 2025 · Pool Singkawang", "1-9UH4NQ6PLCZTK_CPIzZs9zhczd7gd_7Lv3xM6lgS_U"),
   source("2025-tarakan", "2025", "Pool Tarakan", "Mar 2025 · Pool Tarakan", "11eYfzBgcy5RMrjTzuXgt3xUq6qGVJ8Vxs2HlB6RajoY"),
+  // September 2026 — semua pool (diambil dari SUMMARY JALUR DAILY POOL tab 2026)
+  source("2026-balikpapan", "2026", "Pool Balikpapan", "Sep 2026 · Pool Balikpapan", "1Bp-mxoU3IWzpn7hx4RyABst-uI0-k_3cX3aCd_Ilw-4"),
+  source("2026-banjarmasin", "2026", "Pool Banjarmasin", "Sep 2026 · Pool Banjarmasin", "1KAlfIOcl1jePRNV5G7zkrUDnR3dXL-ogaCAsvv4_Vr4"),
+  source("2026-banten", "2026", "Pool Banten", "Sep 2026 · Pool Banten", "1tTTg_kFX4clhHRnX8zh7b32s6MgZJPuo2uQ4M5WGbx4"),
+  source("2026-cilegon", "2026", "Pool Cilegon", "Sep 2026 · Pool Cilegon", "1IJax9ePEkoOVHLHh6mS5PsDkR-LLjRqEnGX5sbrX6iw"),
+  source("2026-madiun", "2026", "Pool Madiun", "Sep 2026 · Pool Madiun", "1r0TwpG13HbEuZJsRqSsUqaDYBtJ-D5cORSvMLqoliTQ"),
+  source("2026-palangkaraya", "2026", "Pool Palangkaraya", "Sep 2026 · Pool Palangkaraya", "1y9W6arr3bfygN1ksyfK_eyXN0PlXPzqb8wZvCcIXd2U"),
+  source("2026-pontianak", "2026", "Pool Pontianak", "Sep 2026 · Pool Pontianak", "1vyWNRGsPJ3zxG0_lrDLsAKkXgGCPA8yD2myKyvGFgLQ"),
+  source("2026-samarinda", "2026", "Pool Samarinda", "Sep 2026 · Pool Samarinda", "15GXFLwOzGPikKYCiI6vb-4I4Ar9imIYtfu6H_QUJ-bw"),
+  source("2026-solo", "2026", "Pool Solo", "Sep 2026 · Pool Solo", "1CyK0AxM1rhc2DK5uazP3cSJRBu_fynu-tSuLJf6jtSU"),
+  source("2026-tarakan", "2026", "Pool Tarakan", "Sep 2026 · Pool Tarakan", "1EGC2SkBiR59TooVGqIoRWJOLiLCiiieTVmOw3z3IV8s"),
 ];
 
 function clean(value: string | undefined) { return (value ?? "").replace(/\u00a0/g, " ").trim(); }
@@ -50,8 +61,15 @@ function parseDailyPool(rows: string[][], sourceInfo: LkpbSource): PoolSummary |
 }
 
 function parseDetail(rows: string[][], sourceInfo: LkpbSource): { records: LkpbRecord[]; weekly: LkpbDashboard["weekly"] } {
-  const headerIndex = rows.findIndex((row) => clean(row[1]).toUpperCase().includes("NO DO") && clean(row[2]).toUpperCase().includes("NAMA CUSTOMER"));
-  const records = (headerIndex >= 0 ? rows.slice(headerIndex + 1) : []).filter((row) => /^\d+$/.test(clean(row[0])) && clean(row[1]) && clean(row[2]) && ["OPEN", "FINISH"].includes(clean(row[6]).toUpperCase())).map((row) => ({ no: number(row[0]), noDo: clean(row[1]), customer: clean(row[2]), jalurAwal: clean(row[3]), reinstall: clean(row[4]), sla: clean(row[5]), slaDays: days(clean(row[5])), status: clean(row[6]).toUpperCase(), category: clean(row[7]).toUpperCase(), reason: clean(row[8]), year: sourceInfo.year, pool: sourceInfo.pool }));
+  const headerIndex = rows.findIndex((row) => clean(row[1]).toUpperCase().includes("NO DO"));
+  if (headerIndex < 0) return { records: [], weekly: [] };
+  const header = rows[headerIndex].map((cell) => clean(cell).toUpperCase());
+  const statusCol = header.findIndex((cell) => cell === "STATUS");
+  const statusIdx = statusCol >= 0 ? statusCol : 6;
+  const catIdx = header.findIndex((cell, i) => cell === "KATEGORI LKPB" && i > statusIdx);
+  const catIdxFinal = catIdx >= 0 ? catIdx : 7;
+  const reasonIdx = Math.max(statusIdx, catIdxFinal) + 1;
+  const records = (headerIndex >= 0 ? rows.slice(headerIndex + 1) : []).filter((row) => !clean(row[1]).toUpperCase().startsWith("TOTAL") && clean(row[1]) && ["OPEN", "FINISH"].includes(clean(row[statusIdx]).toUpperCase())).map((row, index) => ({ no: /^\d+$/.test(clean(row[0])) ? number(row[0]) : index + 1, noDo: clean(row[1]), customer: clean(row[2]), jalurAwal: clean(row[3]), reinstall: clean(row[4]), sla: clean(row[5]), slaDays: days(clean(row[5])), status: clean(row[statusIdx]).toUpperCase(), category: clean(row[catIdxFinal]).toUpperCase(), reason: clean(row[reasonIdx]), year: sourceInfo.year, pool: sourceInfo.pool }));
   const weeklyHeader = rows.findIndex((row) => clean(row[0]).toUpperCase() === "STATUS" && clean(row[1]).toUpperCase() === "W1");
   if (weeklyHeader < 0) return { records, weekly: [] };
   const weeklyIndexes = [1, 2, 3, 4, 6]; const rangeRow = rows[weeklyHeader + 3] ?? [];

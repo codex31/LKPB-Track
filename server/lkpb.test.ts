@@ -23,7 +23,7 @@ describe("LKPB sheet parser", () => {
   it("extracts case records and weekly status from the Detail LKPB layout", () => {
     const parsed = __parseLkpbCsvForTests(detailFixture);
     expect(parsed.records).toHaveLength(3);
-    expect(parsed.records[2]).toMatchObject({ noDo: "5A.XG.000053", customer: "GESIA 1", slaDays: 53, status: "OPEN", category: "CACAT VENDOR", year: "2026", pool: "MASTER" });
+    expect(parsed.records[2]).toMatchObject({ noDo: "5A.XG.000053", customer: "GESIA 1", slaDays: 53, status: "OPEN", category: "CACAT VENDOR", year: "2026", pool: "Pool Singkawang" });
     expect(parsed.weekly[0]).toEqual({ label: "W1", range: "1-6", open: 0, finish: 1 });
   });
 
