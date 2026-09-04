@@ -53,7 +53,8 @@ function parseDetail(rows: string[][], sourceInfo: LkpbSource): { records: LkpbR
   const headerIndex = rows.findIndex((row) => clean(row[1]).toUpperCase().includes("NO DO") && clean(row[2]).toUpperCase().includes("NAMA CUSTOMER"));
   const records = (headerIndex >= 0 ? rows.slice(headerIndex + 1) : []).filter((row) => /^\d+$/.test(clean(row[0])) && clean(row[1]) && clean(row[2]) && ["OPEN", "FINISH"].includes(clean(row[6]).toUpperCase())).map((row) => ({ no: number(row[0]), noDo: clean(row[1]), customer: clean(row[2]), jalurAwal: clean(row[3]), reinstall: clean(row[4]), sla: clean(row[5]), slaDays: days(clean(row[5])), status: clean(row[6]).toUpperCase(), category: clean(row[7]).toUpperCase(), reason: clean(row[8]), year: sourceInfo.year, pool: sourceInfo.pool }));
   const weeklyHeader = rows.findIndex((row) => clean(row[0]).toUpperCase() === "STATUS" && clean(row[1]).toUpperCase() === "W1");
-  const weeklyIndexes = [1, 2, 3, 4, 6]; const rangeRow = weeklyHeader >= 0 ? rows[weeklyHeader + 3] : [];
+  if (weeklyHeader < 0) return { records, weekly: [] };
+  const weeklyIndexes = [1, 2, 3, 4, 6]; const rangeRow = rows[weeklyHeader + 3] ?? [];
   const weekly = ["W1", "W2", "W3", "W4", "W5"].map((label, index) => { const column = weeklyIndexes[index]; return { label, range: clean(rangeRow[column]) || "—", open: number(rows[weeklyHeader + 1]?.[column]), finish: number(rows[weeklyHeader + 2]?.[column]) }; });
   return { records, weekly };
 }

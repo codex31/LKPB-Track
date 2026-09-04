@@ -32,4 +32,13 @@ describe("LKPB sheet parser", () => {
     expect(parsed.records).toHaveLength(0);
     expect(parsed.poolSummary).toMatchObject({ year: "2025", pool: "Pool Balikpapan", days: 2, lkpb: 2, target: 46, real: 46, achievement: 100 });
   });
+
+  it("does not fabricate weekly metrics when the weekly block is absent", () => {
+    const csv = [
+      "SUMMARY DETAIL LKPB",
+      "NO,NO DO,NAMA CUSTOMER,TANGGAL JALUR AWAL,TANGGAL REINSTALL,SLA BERJALAN,STATUS,KATEGORI LKPB,REASON",
+      "1,DO-1,CUSTOMER,1 Sep 2026,2 Sep 2026,1 Day,OPEN,CACAT,REASON",
+    ].join("\n");
+    expect(__parseLkpbCsvForTests(csv).weekly).toEqual([]);
+  });
 });

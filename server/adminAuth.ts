@@ -2,17 +2,22 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Request, Response } from "express";
 import { ENV } from "./_core/env";
 
-export const ADMIN_USERNAME = "admin";
-export const ADMIN_PASSWORD = "admin";
+export const ADMIN_USERNAME = ENV.adminUsername;
+export const ADMIN_PASSWORD = ENV.adminPassword;
 export const ADMIN_COOKIE = "lkpb_admin_session";
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
 function secret() {
-  return ENV.cookieSecret || "lkpb-track-development-secret";
+  if (!ENV.cookieSecret) throw new Error("JWT_SECRET must be configured for admin sessions");
+  return ENV.cookieSecret;
 }
 
 function sign(payload: string) {
   return createHmac("sha256", secret()).update(payload).digest("hex");
+}
+
+export function isAdminConfigured() {
+  return Boolean(ADMIN_USERNAME && ADMIN_PASSWORD && ENV.cookieSecret);
 }
 
 export function createAdminToken(now = Date.now()) {
@@ -23,10 +28,12 @@ export function createAdminToken(now = Date.now()) {
 export function isAdminSession(req: Request) {
   const raw = req.headers.cookie?.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${ADMIN_COOKIE}=`))?.split("=").slice(1).join("=");
   if (!raw) return false;
-  const decoded = decodeURIComponent(raw);
+  let decoded: string;
+  try { decoded = decodeURIComponent(raw); } catch { return false; }
   const [payload, signature] = decoded.split(".");
   if (!payload || !signature || !/^admin:\d+$/.test(payload)) return false;
-  const expected = sign(payload);
+  let expected: string;
+  try { expected = sign(payload); } catch { return false; }
   try {
     if (signature.length !== expected.length || !timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return false;
   } catch { return false; }

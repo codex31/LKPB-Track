@@ -4,7 +4,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { clearAdminCookie, isAdminSession, setAdminCookie, ADMIN_PASSWORD, ADMIN_USERNAME } from "./adminAuth";
+import { clearAdminCookie, isAdminConfigured, isAdminSession, setAdminCookie, ADMIN_PASSWORD, ADMIN_USERNAME } from "./adminAuth";
 import { ensureLkpbSources, setLkpbSourceEnabled } from "./db";
 import { getLkpbDashboard } from "./lkpb";
 
@@ -27,6 +27,7 @@ export const appRouter = router({
     dashboard: publicProcedure.query(() => getLkpbDashboard()),
     admin: router({
       login: publicProcedure.input(z.object({ username: z.string().min(1), password: z.string().min(1) })).mutation(({ input, ctx }) => {
+        if (!isAdminConfigured()) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Admin credentials belum dikonfigurasi di server" });
         if (input.username !== ADMIN_USERNAME || input.password !== ADMIN_PASSWORD) throw new TRPCError({ code: "UNAUTHORIZED", message: "Username atau password salah" });
         setAdminCookie(ctx.res);
         return { success: true, username: ADMIN_USERNAME } as const;
