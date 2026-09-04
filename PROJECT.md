@@ -6,7 +6,7 @@ Dokumen ini adalah kontrak kerja untuk developer dan AI agent yang berkontribusi
 
 Aplikasi harus tetap **server-authoritative** untuk spreadsheet, database, dan secret. Client hanya memanggil prosedur tRPC dan tidak boleh mengakses Google Sheets atau membaca credential admin secara langsung. Perubahan harus kecil, dapat diuji, dan mudah di-rollback.
 
-Parser harus tahan terhadap variasi format spreadsheet. Jangan menganggap posisi baris sebagai data valid tanpa memeriksa header. Baris summary, grand total, dan blank row tidak boleh menjadi case LKPB. Jika blok weekly tidak ada, hasil weekly harus kosong, bukan hasil tebakan.
+Parser harus tahan terhadap variasi format spreadsheet. Jangan menganggap posisi baris sebagai data valid tanpa memeriksa header. Baris summary, grand total, dan blank row tidak boleh menjadi case LKPB. Tanggal jalur awal dengan format Indonesia (mis. `6 Agu 2026`) di-parse server-side; jika gagal, fallback ke nilai statis dari kolom `SLA BERJALAN` sheet.
 
 Admin mutation harus tetap memiliki dua lapisan: session signed yang valid dan same-origin request. Jangan mengganti origin check dengan CORS permisif. Jangan menambahkan password fallback untuk memudahkan development.
 
@@ -64,7 +64,7 @@ Build warning harus ditinjau. Warning yang menunjukkan placeholder environment, 
 
 ## Testing guidance
 
-Test parser dengan fixture yang mewakili format 2025 pool daily, format 2026 Detail LKPB, summary row, blank row, dan file tanpa weekly block. Test security dengan token valid, token expired, signature tampered, foreign origin, missing origin, dan repeated failed login. Test router mutation dengan request tanpa session dan tanpa same-origin header.
+Test parser dengan fixture yang mewakili format 2025 pool daily, format 2026 Detail LKPB, summary row, blank row, dan tanggal jalur awal dengan format Indonesia. Test security dengan token valid, token expired, signature tampered, foreign origin, missing origin. Test router mutation dengan request tanpa session dan tanpa same-origin header.
 
 ## Deployment guidance
 
