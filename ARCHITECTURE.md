@@ -38,9 +38,9 @@ flowchart LR
 1. Browser memanggil `lkpb.dashboard` melalui tRPC.
 2. Server membaca source yang enabled dari `lkpb_source_settings`.
 3. Server mengambil CSV tab `Detail LKPB` secara server-side.
-4. Parser mengenali blok case detail, weekly status, atau daily pool metrics.
+4. Parser mengenali blok case detail atau daily pool metrics.
 5. Baris summary dan header yang tidak valid diabaikan.
-6. Server menggabungkan record, status, kategori, SLA, weekly metrics, dan pool summaries.
+6. Server menggabungkan record, status, kategori, SLA, pool summaries, dan issue per pool.
 7. Client menerapkan filter tahun/pool dan merender hasil tanpa akses langsung ke spreadsheet.
 
 Kegagalan satu source tidak boleh merusak seluruh dashboard. Aggregator mencatat source error dan memakai source valid yang tersisa. Jika semua source gagal, response menggunakan fallback yang ditentukan oleh implementation saat ini dan UI menampilkan indikator fallback.
