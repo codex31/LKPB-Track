@@ -2,7 +2,7 @@ export const LKPB_SOURCE_URL = "https://docs.google.com/spreadsheets/d/1dv47cVgG
 const ORIGINAL_SAMPLE_ID = "10yajj552DnuKf0-rroYqcdyET60WjTCe58PknW7L6Dw";
 const CSV_BASE = "https://docs.google.com/spreadsheets/d";
 
-export type LkpbRecord = { no: number; noDo: string; customer: string; jalurAwal: string; reinstall: string; sla: string; slaDays: number; status: string; category: string; reason: string; year: string; pool: string };
+export type LkpbRecord = { no: number; noDo: string; customer: string; jalurAwal: string; reinstall: string; sla: string; slaDays: number; status: string; category: string; reason: string; year: string; pool: string; week: number };
 export type PoolSummary = { year: string; pool: string; sourceKey: string; label: string; days: number; lkpb: number; open: number; target: number; real: number; achievement: number };
 export type LkpbSource = { sourceKey: string; year: string; pool: string; label: string; spreadsheetId: string; sheetName: string };
 export type LkpbDashboard = {
@@ -69,7 +69,7 @@ function parseDetail(rows: string[][], sourceInfo: LkpbSource): { records: LkpbR
   const catIdx = header.findIndex((cell, i) => cell === "KATEGORI LKPB" && i > statusIdx);
   const catIdxFinal = catIdx >= 0 ? catIdx : 7;
   const reasonIdx = Math.max(statusIdx, catIdxFinal) + 1;
-  const records = (headerIndex >= 0 ? rows.slice(headerIndex + 1) : []).filter((row) => !clean(row[1]).toUpperCase().startsWith("TOTAL") && clean(row[1]) && ["OPEN", "FINISH"].includes(clean(row[statusIdx]).toUpperCase())).map((row, index) => ({ no: /^\d+$/.test(clean(row[0])) ? number(row[0]) : index + 1, noDo: clean(row[1]), customer: clean(row[2]), jalurAwal: clean(row[3]), reinstall: clean(row[4]), sla: clean(row[5]), slaDays: days(clean(row[5])), status: clean(row[statusIdx]).toUpperCase(), category: clean(row[catIdxFinal]).toUpperCase(), reason: clean(row[reasonIdx]), year: sourceInfo.year, pool: sourceInfo.pool }));
+  const records = (headerIndex >= 0 ? rows.slice(headerIndex + 1) : []).filter((row) => !clean(row[1]).toUpperCase().startsWith("TOTAL") && clean(row[1]) && ["OPEN", "FINISH"].includes(clean(row[statusIdx]).toUpperCase())).map((row, index) => ({ no: /^\d+$/.test(clean(row[0])) ? number(row[0]) : index + 1, noDo: clean(row[1]), customer: clean(row[2]), jalurAwal: clean(row[3]), reinstall: clean(row[4]), sla: clean(row[5]), slaDays: days(clean(row[5])), status: clean(row[statusIdx]).toUpperCase(), category: clean(row[catIdxFinal]).toUpperCase(), reason: clean(row[reasonIdx]), year: sourceInfo.year, pool: sourceInfo.pool, week: Math.max(1, Math.floor(((new Date(clean(row[3]))).getTime() - new Date('2026-08-02').getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1) }));
   const weeklyHeader = rows.findIndex((row) => clean(row[0]).toUpperCase() === "STATUS" && clean(row[1]).toUpperCase() === "W1");
   if (weeklyHeader < 0) return { records, weekly: [] };
   const weeklyIndexes = [1, 2, 3, 4, 6]; const rangeRow = rows[weeklyHeader + 3] ?? [];
